@@ -1,0 +1,111 @@
+define("ZDAPIKEY", "");
+define("ZDUSER", "");
+define("ZDURL", "");
+
+/* Note: do not put a trailing slash at the end of v2 */
+ 
+function curlWrap($url, $json, $action)
+{
+	$ch = curl_init();
+	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+	curl_setopt($ch, CURLOPT_MAXREDIRS, 10 );
+	curl_setopt($ch, CURLOPT_URL, ZDURL.$url);
+	curl_setopt($ch, CURLOPT_USERPWD, ZDUSER."/token:".ZDAPIKEY);
+	switch($action){
+		case "POST":
+			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
+			break;
+		case "GET":
+			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
+			break;
+		case "PUT":
+			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
+			break;
+		case "DELETE":
+			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
+			break;
+		default:
+			break;
+	}
+ 
+	curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-type: application/json'));
+	curl_setopt($ch, CURLOPT_USERAGENT, "MozillaXYZ/1.0");
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+	$output = curl_exec($ch);
+	curl_close($ch);
+	$decoded = json_decode($output);
+	return $decoded;
+}
+
+function curlUpload($url, $binary, $filename)
+{
+  $ch = curl_init();
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_MAXREDIRS, 10 );
+    curl_setopt($ch, CURLOPT_URL, ZDURL.$url."?filename=".$filename);
+    curl_setopt($ch, CURLOPT_USERPWD, ZDUSER."/token:".ZDAPIKEY);
+    
+    
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $binary);
+    
+     
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-type: application/binary'));
+    curl_setopt($ch, CURLOPT_USERAGENT, "MozillaXYZ/1.0");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    $output = curl_exec($ch);
+    curl_close($ch);
+    $decoded = json_decode($output);
+//  print $output;
+    return $decoded;
+} 
+
+function createTicket()
+
+{	
+// API JSON Format
+// http://developer.zendesk.com/documentation/rest_api/tickets.html#creating-tickets
+
+$binaryFileExample = file_get_contents($_FILES['fileUpload']['tmp_name']);
+$upload = curlUpload("/uploads.json", $binaryFileExample, $_FILES['fileUpload']['name']); 
+    
+$data = array(
+
+"ticket" => array(
+"subject" => "Demande du formulaire de contact SAV ",
+"comment"=> array(
+                   "body" => ($message = Tools::htmlentitiesUTF8(Tools::getValue('message'))),
+                   "uploads" => array($upload->upload->token)
+            ),
+
+"requester" => array( "name" => ($nom = trim(Tools::getValue('nom'))), "email" => ($confirmemail = trim(Tools::getValue('confirmemail')))  ),
+"custom_fields" => array( array( "id" => 22035742, "value" => ($cp = trim(Tools::getValue('cp'))) ),
+				   array( "id" => 22057938, "value" => ($adresse = trim(Tools::getValue('adresse'))) ),	
+				   array( "id" => 22047191, "value" => ($ville = trim(Tools::getValue('ville'))) ),
+				   array( "id" => 22035313, "value" => ($telephone = trim(Tools::getValue('telephone'))) ),
+				   array( "id" => 22056386, "value" => ($nom = trim(Tools::getValue('nom'))) ),
+				   array( "id" => 22057928, "value" => ($prenom = trim(Tools::getValue('prenom'))) ),
+				   array( "id" => 22035323, "value" => ($id_contact = trim(Tools::getValue('id_contact'))) ),
+				   array( "id" => 22035752, "value" => ($id_panne = trim(Tools::getValue('id_panne'))) ),
+				   array( "id" => 22056466, "value" => ($dateAchat = trim(Tools::getValue('dateAchat'))) ),
+				   array( "id" => 22144003, "value" => ($idcategorie = trim(Tools::getValue('idcategorie'))) ), //empty
+				   array( "id" => 22155551, "value" => ($reference = trim(Tools::getValue('reference'))) ),
+				   array( "id" => 22138982, "value" => ($typeachat = trim(Tools::getValue('typeachat'))) ), //empty
+				   array( "id" => 22164958, "value" => ($codeenseigne = trim(Tools::getValue('codeenseigne'))) ),
+				   array( "id" => 22159716, "value" => ($nomenseigne = trim(Tools::getValue('nomenseigne'))) ) //empty
+				   )
+)
+);
+
+$json = json_encode($data);
+
+curlWrap("/tickets.json", $json, "POST");
+
+}
+
+//s'go!
+createTicket();
